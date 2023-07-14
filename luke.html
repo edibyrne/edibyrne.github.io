@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="myStyle.css" />
+    <title>MIT Museum: Art Explorer Quiz</title>
+  </head>
+
+  <body>
+    <header>
+      <h1>MIT Museum: Art Explorer Quiz</h1>
+    </header>
+    <div id="main">
+      <button id="randomizeButton">Randomize</button>
+
+      <p id="question">What would you like to see?</p>
+
+      <input type="radio" id="photograph" name="input1" value="photograph" />
+      <label for="photograph">Photograph</label>
+
+      <input type="radio" id="drawing" name="input1" value="drawing" />
+      <label for="drawing">Drawing</label>
+
+      <input type="radio" id="plan" name="input1" value="plan" />
+      <label for="plan">Plan</label>
+
+      <input type="radio" id="postcard" name="input1" value="postcard" />
+      <label for="postcard">Postcard</label>
+
+      <input type="radio" checked id="input1-none" name="input1" value="none" />
+      <label for="input1-none">None</label>
+
+      <p id="question">What material would you like?</p>
+
+      <input type="radio" id="ink" name="input2" value="ink" />
+      <label for="ink">Ink</label>
+
+      <input type="radio" id="pencil" name="input2" value="pencil" />
+      <label for="pencil">Pencil</label>
+
+      <input type="radio" id="cardboard" name="input2" value="cardboard" />
+      <label for="cardboard">Carboard</label>
+
+      <input type="radio" checked id="input2-none" name="input2" value="none" />
+      <label for="input2-none">None</label>
+
+      <p id="question">What century would you like?</p>
+
+      <input
+        type="radio"
+        id="16th-century"
+        name="input3"
+        value="16"
+        data-min-year="1500"
+        data-max-year="1599"
+      />
+      <label for="16th-century">16th century</label><br />
+
+      <input
+        type="radio"
+        id="17th-century"
+        name="input3"
+        value="17"
+        data-min-year="1600"
+        data-max-year="1699"
+      />
+      <label for="17th-century">17th century</label><br />
+
+      <input
+        type="radio"
+        id="18th-century"
+        name="input3"
+        value="18"
+        data-min-year="1700"
+        data-max-year="1799"
+      />
+      <label for="18th-century">18th century</label><br />
+
+      <input
+        type="radio"
+        id="19th-century"
+        name="input3"
+        value="19"
+        data-min-year="1800"
+        data-max-year="1899"
+      />
+      <label for="19th-century">19th century</label><br />
+
+      <input
+        type="radio"
+        id="20th-century"
+        name="input3"
+        value="20"
+        data-min-year="1900"
+        data-max-year="1999"
+      />
+      <label for="20th-century">20th century</label><br />
+
+      <input
+        type="radio"
+        id="21st-century"
+        name="input3"
+        value="21"
+        data-min-year="2000"
+        data-max-year="2099"
+      />
+      <label for="21st-century">21st century</label><br />
+
+      <input type="radio" checked id="input3-none" name="input3" value="any" />
+      <label for="input3-none">Any</label><br />
+
+      <button id="graphqlButton" class="btn">Find</button>
+
+      <div>
+        <h2 id="results"></h2>
+        <div id="dataGrid"></div>
+        <div id="errorMessage"></div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document
+        // attaches to the button in the page:
+        // <button id="graphqlButton">Submit query</button>
+        .getElementById("graphqlButton")
+        // when the button is clicked, run the "runQuery()" function
+        .addEventListener("click", () => {
+          // Get values from radio buttons
+          const input1 = document.querySelector(
+            'input[name="input1"]:checked'
+          ).value;
+
+          const input2 = document.querySelector(
+            'input[name="input2"]:checked'
+          ).value;
+
+          const radioButtons3 = document.querySelector(
+            'input[name="input3"]:checked'
+          );
+          const minYear = radioButtons3.getAttribute("data-min-year");
+          const maxYear = radioButtons3.getAttribute("data-max-year");
+
+          // Create an array of filters
+          const filters = [
+            {
+              field: "resourceType",
+              value: "collection-object",
+            },
+          ];
+
+          // Add filters to the array if their value is not "None"
+          if (input1 !== "none") {
+            filters.push({
+              field: "objectType",
+              value: input1,
+            });
+          }
+          if (input2 !== "none") {
+            filters.push({
+              field: "materials",
+              value: input2,
+            });
+          }
+          if (radioButtons3.value !== "any") {
+            filters.push({
+              field: "dateMade",
+              dateMin: minYear,
+              dateMax: maxYear,
+            });
+          }
+
+          console.log(filters);
+          runQuery(filters)
+            // Pass the response of the API to the
+            // displayData function
+            .then(displayData)
+            // if there's an error, log it
+            .catch((error) => console.error(error));
+        });
+      // Add an event listener to the "randomizeButton" element
+      document
+        .getElementById("randomizeButton")
+        .addEventListener("click", () => {
+          // Get all radio buttons
+          const radioButtons1 = document.querySelectorAll(
+            'input[name="input1"]'
+          );
+          const radioButtons2 = document.querySelectorAll(
+            'input[name="input2"]'
+          );
+          const radioButtons3 = document.querySelectorAll(
+            'input[name="input3"]'
+          );
+
+          // run a function that randomises each of the radio groups
+          randomiseRadios(radioButtons1);
+          randomiseRadios(radioButtons2);
+          randomiseRadios(radioButtons3);
+        });
+    });
+
+    function randomiseRadios(radioButtons) {
+      // Uncheck all radio buttons
+      radioButtons.forEach((radioButton) => {
+        radioButton.checked = false;
+      });
+
+      // Randomly select a radio button
+      const randomIndex = Math.floor(Math.random() * radioButtons.length);
+      const randomRadioButton = radioButtons[randomIndex];
+      // Check the randomly selected radio button
+      randomRadioButton.checked = true;
+    }
+
+    /**
+     * Sends a GraphQL query to the MIT Museum's Collection API
+     * @param {array} filters - a list of fields and values to filter
+     * the search results by
+     */
+    function runQuery(filters) {
+      const graphqlServerUrl = "https://collections-api.mitmuseum.org/";
+      const query = `
+    query Query($query: String, $limit: Int, $filters: [FilterInput]) {
+      search(query: $query, limit: $limit, filters: $filters) {
+        summaryItems {
+          title
+          primaryImageUrl
+          id
+          subtitle
+          resourceType
+        }
+      }
+    }
+    `;
+
+      const variables = {
+        query: "",
+        limit: 9,
+        filters,
+      };
+
+      // submits the query to the server as a POST request with the query & variables
+      return fetch(graphqlServerUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          query,
+          variables,
+        }),
+      }).then((response) => {
+        if (!response.ok) {
+          // If there's a problem, send back an error
+          throw new Error("Network response was not ok");
+        }
+        // If the request is successful, return the results
+        return response.json();
+      });
+    }
+
+    /*
+     * Puts the results on the page as a list or displays an error message if no results are found
+     * @param {object} data - the response from the API
+     */
+    function displayData(data) {
+      const resultsHeadingElement = document.getElementById("results");
+      const grid = document.getElementById("dataGrid");
+      const errorMessageElement = document.getElementById("errorMessage");
+
+      // Make sure the grid is empty before adding new items
+      while (grid.firstChild) {
+        grid.removeChild(grid.firstChild);
+      }
+
+      // Clear any previous error messages
+      errorMessageElement.innerHTML = "";
+
+      // Check if there are any results
+      if (data.data.search.summaryItems.length === 0) {
+        // If there are no results, display an error message
+        const errorMessage = document.createElement("p");
+        errorMessage.textContent = "No results found";
+        errorMessage.classList.add("error-message"); // Add a class to the <p> element
+        errorMessageElement.appendChild(errorMessage);
+      } else {
+        // If there are results, add a results title and loop through them and add them to the grid
+        resultsHeadingElement.textContent = "Your results :";
+        data.data.search.summaryItems.forEach((item) => {
+          const gridItem = document.createElement("div");
+          gridItem.classList.add("gridItem");
+
+          const title = document.createElement("h3");
+          title.textContent = item.title;
+          gridItem.appendChild(title);
+
+          const img = document.createElement("img");
+          img.src =
+            "https://mitmuseum.mit.edu/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fobject-placeholder.2e86f75c.jpg&w=1920&q=75";
+          if (item.primaryImageUrl) {
+            img.src = item.primaryImageUrl;
+          }
+          img.alt = item.title;
+          gridItem.appendChild(img);
+
+          const id = document.createElement("p");
+          id.textContent = `ID: ${item.id}`;
+          gridItem.appendChild(id);
+
+          // Create a link to the item on the MIT Museum's website
+          const link = document.createElement("a");
+          link.href = `https://mitmuseum.mit.edu/collections/object/${item.id}`;
+          link.textContent = "View on MIT Museum website";
+          gridItem.appendChild(link);
+
+          grid.appendChild(gridItem);
+        });
+      }
+    }
+  </script>
+</html>
